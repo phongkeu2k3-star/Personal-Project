@@ -1,4 +1,6 @@
-using Finance.Infrastructure;
+﻿using Finance.Infrastructure;
+using Finance.WebAPI.Hubs;
+using Finance.WebAPI.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,9 +12,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ??ng k� SQL Server
+// Đăng ký SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+//Đăng ký SignalR
+builder.Services.AddSignalR();
+
+//Đăng ký PriceWorker
+builder.Services.AddHostedService<PriceWorker>();
 
 var app = builder.Build();
 
@@ -28,5 +36,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<PriceHub>("/priceHub");
 
 app.Run();
