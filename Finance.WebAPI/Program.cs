@@ -1,4 +1,5 @@
 ﻿using Finance.Infrastructure;
+using Finance.Infrastructure.Data;
 using Finance.WebAPI.Hubs;
 using Finance.WebAPI.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,8 +14,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Đăng ký SQL Server
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddDbContext<FinanceDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        b => b.MigrationsAssembly("Finance.Infrastructure")));
 
 //Đăng ký SignalR
 builder.Services.AddSignalR();

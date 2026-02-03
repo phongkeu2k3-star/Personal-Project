@@ -6,13 +6,26 @@ using System.Threading.Tasks;
 
 namespace Finance.Domain.Entities
 {
+    // Class Asset đại diện cho một tài sản tài chính (Crypto, Stock,...)
     public class Asset
     {
-        public int Id { get; set; } // Khóa chính tự tăng
-        public string Symbol { get; set; } = string.Empty; // Ví dụ: BTC, GOLD
-        public string Name { get; set; } = string.Empty;   // Ví dụ: Bitcoin
-        public decimal CurrentPrice { get; set; }          // Giá hiện tại
-        public double PriceChange24h { get; set; }        // Biến động %
-        public DateTime LastUpdated { get; set; }          // Thời gian cập nhật cuối
+        // Khóa chính (Primary Key) định danh duy nhất cho mỗi tài sản
+        public int Id { get; set; }
+
+        // Mã giao dịch của tài sản (ví dụ: "BTC", "ETH"). Chuỗi string không null.
+        public string Symbol { get; set; } = string.Empty;
+
+        // Tên đầy đủ của tài sản (ví dụ: "Bitcoin", "Ethereum").
+        public string Name { get; set; } = string.Empty;
+
+        // Giá hiện tại của tài sản. Sử dụng kiểu decimal cho độ chính xác cao trong tài chính.
+        public decimal CurrentPrice { get; set; }
+
+        // Thời điểm cập nhật giá lần cuối cùng.
+        public DateTime LastUpdated { get; set; }
+
+        // Mối quan hệ 1-n: Một Asset có thể có nhiều lịch sử giá (PriceHistory).
+        // ICollection cho phép Entity Framework quản lý danh sách này.
+        public ICollection<PriceHistory> PriceHistories { get; set; } = new List<PriceHistory>();
     }
 }
