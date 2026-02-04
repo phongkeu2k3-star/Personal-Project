@@ -1,0 +1,129 @@
+﻿/* ============================================================
+   1. CẤU HÌNH CHUNG (GLOBAL)
+   ============================================================ */
+body {
+    background-color: #121212; /* Màu nền đen sâu (Dark Theme) */
+    color: #e0e0e0; /* Màu chữ xám trắng dễ đọc */
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Tùy chỉnh thanh cuộn (Scrollbar) cho đẹp trên trình duyệt Chrome/Edge */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #ffc107; /* Hover vào thanh cuộn sẽ hiện màu vàng */
+    }
+
+/* ============================================================
+   2. UI COMPONENT: GLASS CARD (Hiệu ứng kính mờ)
+   ============================================================ */
+.glass-card {
+    background: rgba(30, 30, 30, 0.6); /* Nền bán trong suốt */
+    backdrop-filter: blur(10px); /* Làm mờ hậu cảnh phía sau */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Viền mỏng tinh tế */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); /* Đổ bóng sâu */
+    border-radius: 12px; /* Bo góc mềm mại */
+}
+
+/* ============================================================
+   3. UI COMPONENT: INPUT SEARCH (MỚI THÊM)
+   ============================================================ */
+/* Tùy chỉnh ô nhập liệu để không bị lệch tông màu trắng của Bootstrap mặc định */
+#coinInput {
+    background-color: rgba(0, 0, 0, 0.3); /* Nền input tối */
+    color: #fff; /* Chữ khi gõ màu trắng */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 500;
+}
+
+    /* Hiệu ứng khi người dùng bấm vào ô input */
+    #coinInput:focus {
+        background-color: rgba(0, 0, 0, 0.5);
+        border-color: #ffc107; /* Viền chuyển màu vàng cam */
+        box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25); /* Phát sáng nhẹ màu vàng */
+        color: #fff;
+    }
+
+    /* Màu chữ gợi ý (placeholder) */
+    #coinInput::placeholder {
+        color: #adb5bd;
+        font-style: italic;
+        font-size: 0.9em;
+    }
+
+/* ============================================================
+   4. UI COMPONENT: BẢNG DỮ LIỆU (TABLE)
+   ============================================================ */
+.table-dark-custom {
+    background-color: transparent;
+    color: #e0e0e0;
+}
+
+    .table-dark-custom th, .table-dark-custom td {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Đường kẻ mờ ngăn cách dòng */
+        vertical-align: middle; /* Căn giữa theo chiều dọc */
+    }
+
+/* Style cho Logo coin tròn nhỏ */
+.coin-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    margin-right: 10px;
+    background-color: #fff; /* Nền trắng để logo coin nổi bật */
+    padding: 2px;
+    object-fit: cover;
+}
+
+/* ============================================================
+   5. ANIMATION & BUTTONS
+   ============================================================ */
+
+/* Định nghĩa hiệu ứng nhấp nháy màu xanh lá */
+@keyframes flash-green {
+    0% {
+        color: #00ff88;
+        text-shadow: 0 0 10px #00ff88; /* Phát sáng neon */
+        transform: scale(1.1); /* Phóng to nhẹ chữ */
+    }
+
+    100% {
+        color: #28a745;
+        text-shadow: none;
+        transform: scale(1);
+    }
+}
+
+/* Class kích hoạt animation (được JS thêm vào khi giá đổi) */
+.price-up {
+    animation: flash-green 0.8s ease-out;
+    color: #28a745;
+}
+
+/* Nút icon tròn (Xem biểu đồ, Xóa) */
+.btn-icon {
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s; /* Hiệu ứng mượt mà */
+}
+
+    /* Hiệu ứng phóng to khi di chuột vào nút */
+    .btn-icon:hover {
+        transform: scale(1.15);
+    }

@@ -60,5 +60,15 @@ namespace Finance.Infrastructure.Repositories
             _context.Assets.Update(asset); // Đánh dấu là đã sửa
             await _context.SaveChangesAsync(); // Lưu thay đổi
         }
+
+        // Hàm xóa
+        public async Task DeleteAssetAsync(Asset asset)
+        {
+            // Vì đã nhận vào object Asset rồi, ta xóa trực tiếp luôn
+            _context.Assets.Remove(asset);
+
+            // Lưu thay đổi vào DB
+            await _context.SaveChangesAsync();
+        }
     }
 }

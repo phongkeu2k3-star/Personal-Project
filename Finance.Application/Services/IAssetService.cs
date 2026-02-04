@@ -22,5 +22,8 @@ namespace Finance.Application.Services
 
         // Lấy lịch sử giá của một tài sản
         Task<IEnumerable<PriceHistoryDto>> GetAssetHistoryAsync(int assetId);
+
+        //hàm xóa
+        Task DeleteAssetAsync(int id);
     }
 }

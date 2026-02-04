@@ -30,5 +30,8 @@ namespace Finance.Domain.Interfaces
 
         // Kiểm tra xem một Symbol đã tồn tại trong database chưa.
         Task<bool> AssetExistsAsync(string symbol);
+
+        //Hàm xóa
+        Task DeleteAssetAsync(Asset asset);
     }
 }

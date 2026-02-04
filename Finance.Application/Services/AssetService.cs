@@ -77,5 +77,19 @@ namespace Finance.Application.Services
             var history = await _priceHistoryRepository.GetHistoryByAssetIdAsync(assetId);
             return _mapper.Map<IEnumerable<PriceHistoryDto>>(history);
         }
+        //hàm xóa
+        public async Task DeleteAssetAsync(int id)
+        {
+            // B1: Dùng ID để tìm lấy đối tượng Asset từ DB lên trước
+            var assetToDelete = await _assetRepository.GetAssetByIdAsync(id);
+
+            // B2: Kiểm tra nếu tìm thấy thì mới xóa
+            if (assetToDelete != null)
+            {
+                // Lỗi "cannot convert int to Asset" sẽ hết vì ta truyền assetToDelete (kiểu Asset)
+                // chứ không truyền id (kiểu int) nữa.
+                await _assetRepository.DeleteAssetAsync(assetToDelete);
+            }
+        }
     }
 }
