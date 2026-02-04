@@ -47,21 +47,26 @@ async function loadMarketData() {
 
     try {
         console.log("Đang tải danh sách coin từ API...");
-        // Gọi API miễn phí của CoinCap
-        const response = await fetch('https://api.coincap.io/v2/assets?limit=2000');
+
+        // Thử gọi API (timeout trong 5 giây để không phải chờ lâu)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const response = await fetch('https://api.coincap.io/v2/assets?limit=2000', {
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
         if (!response.ok) throw new Error("Kết nối API thất bại");
 
         const data = await response.json();
         marketCoins = data.data;
-
-        console.log(`Đã tải thành công ${marketCoins.length} coin.`);
+        console.log(`✅ Đã tải thành công ${marketCoins.length} coin từ API.`);
 
     } catch (error) {
-        // === PHẦN QUAN TRỌNG: DỮ LIỆU DỰ PHÒNG KHI MẤT MẠNG ===
-        console.error("Lỗi tải API, chuyển sang chế độ Offline:", error);
+        console.warn("⚠️ API lỗi hoặc bị chặn, đang dùng danh sách Offline:", error);
 
-        // Danh sách cứng các coin phổ biến để dùng khi API lỗi
+        // DANH SÁCH DỰ PHÒNG (Mở rộng thêm nhiều coin phổ biến để bạn test)
         marketCoins = [
             { symbol: "BTC", name: "Bitcoin" },
             { symbol: "ETH", name: "Ethereum" },
@@ -72,14 +77,25 @@ async function loadMarketData() {
             { symbol: "USDC", name: "USDC" },
             { symbol: "ADA", name: "Cardano" },
             { symbol: "DOGE", name: "Dogecoin" },
-            { symbol: "TRX", name: "TRON" }
+            { symbol: "TRX", name: "TRON" },
+            { symbol: "DOT", name: "Polkadot" },
+            { symbol: "MATIC", name: "Polygon" },
+            { symbol: "LTC", name: "Litecoin" },
+            { symbol: "SHIB", name: "Shiba Inu" },
+            { symbol: "AVAX", name: "Avalanche" },
+            { symbol: "DAI", name: "Dai" },
+            { symbol: "WBTC", name: "Wrapped Bitcoin" },
+            { symbol: "LINK", name: "Chainlink" },
+            { symbol: "ATOM", name: "Cosmos" },
+            { symbol: "UNI", name: "Uniswap" }
         ];
 
-        alert("⚠️ Không kết nối được API CoinCap! Đã tải danh sách coin cơ bản dự phòng.");
+        // BỎ ALERT ĐỂ KHÔNG BỊ CHẶN GIAO DIỆN
+        // alert("⚠️ Không kết nối được API! Đang dùng chế độ Offline.");
     }
 
-    // --- ĐỔ DỮ LIỆU VÀO DROPDOWN (Chạy cho cả 2 trường hợp Online/Offline) ---
-    dataList.innerHTML = ''; // Xóa cũ
+    // --- ĐỔ DỮ LIỆU VÀO DROPDOWN ---
+    dataList.innerHTML = '';
 
     marketCoins.forEach(coin => {
         const option = document.createElement('option');
