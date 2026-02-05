@@ -63,6 +63,7 @@ Trong Phase 2, hệ thống sẽ tập trung vào tính năng **User-Centric (L�
 ### 2.1. Module Xác thực (Authentication)
 * **Đăng ký / Đăng nhập:** Hỗ trợ Email & Password.
 * **Bảo mật API:** Sử dụng **JWT (JSON Web Token)**. Token có thời hạn (ví dụ: 24h) và Refresh Token.
+* 
 * **Phân quyền:**
     * `Guest`: Chỉ xem giá thị trường.
     * `User`: Có quyền thao tác với Portfolio, Alerts.
@@ -77,7 +78,7 @@ Hệ thống không chỉ lưu user đang giữ coin nào, mà lưu chi tiết l
 
 ### 2.3. Module Cảnh báo (Price Alerts)
 * User cài đặt ngưỡng giá (VD: *Báo tôi khi BTC > $100k*).
-* Hệ thống tự động quét giá nền (Background Worker) và gửi thông báo khi khớp điều kiện.
+* Hệ thống tự động quét giá nền  (Background Worker) và gửi thông báo khi khớp điều kiện.
 * **Kênh thông báo:** In-app Notification (SignalR Toast) & Email.
 
 ---
