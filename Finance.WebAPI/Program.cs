@@ -1,97 +1,118 @@
-﻿using Finance.Application.Mappings; // Import cấu hình AutoMapper
-using Finance.Application.Services; // Import các Service
-using Finance.Domain.Interfaces;    // Import các Interface
-using Finance.Infrastructure.Data;  // Import DbContext
-using Finance.Infrastructure.Repositories; // Import Repository implementation
-using Microsoft.EntityFrameworkCore; // Import EF Core
+﻿using Finance.Application.Mappings;
+using Finance.Application.Services;
+using Finance.Domain.Interfaces;
+using Finance.Infrastructure.Data;
+using Finance.Infrastructure.Repositories;
+using Finance.WebAPI.Services; // Import AuthService
+using Microsoft.AspNetCore.Authentication.JwtBearer; // Import cấu hình JWT
+using Microsoft.AspNetCore.Identity; // Import Identity
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens; // Import Token Validation
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ==============================================================
-// 1. ĐĂNG KÝ SERVICES (Dependency Injection)
-// ==============================================================
-
-// Cấu hình kết nối Database lấy từ appsettings.json
-// "DefaultConnection" phải khớp với tên trong file appsettings.json bạn đã sửa ở bước trước
+// 1. KẾT NỐI DATABASE
 builder.Services.AddDbContext<FinanceDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Đăng ký AutoMapper
-// Nó sẽ tự động quét và tìm file MappingProfile trong project Finance.Application
-builder.Services.AddAutoMapper(typeof(MappingProfile));
+// --- 2. CẤU HÌNH IDENTITY (MỚI) ---
+// Thêm Identity vào hệ thống, sử dụng EntityFramework để lưu dữ liệu
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<FinanceDbContext>() // Lưu user vào FinanceDbContext
+    .AddDefaultTokenProviders(); // Cung cấp chức năng reset pass, confirm email...
 
-// Đăng ký Repositories (Layer Infrastructure)
-// Khi ai đó cần IAssetRepository, hãy đưa cho họ AssetRepository
+// --- 3. CẤU HÌNH JWT AUTHENTICATION (MỚI) ---
+// Đăng ký dịch vụ xác thực
+builder.Services.AddAuthentication(options =>
+{
+    // Thiết lập mặc định là dùng JWT Bearer
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+// Cấu hình chi tiết cho JWT
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true; // Lưu token server nhận được
+    options.RequireHttpsMetadata = false; // Tắt yêu cầu HTTPS (dev only)
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true, // Kiểm tra xem có đúng Server mình phát hành không
+        ValidateAudience = true, // Kiểm tra xem có đúng Client được phép dùng không
+        ValidAudience = builder.Configuration["JWT:ValidAudience"], // Lấy từ appsettings
+        ValidIssuer = builder.Configuration["JWT:ValidIssuer"], // Lấy từ appsettings
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Secret"])) // Kiểm tra chữ ký bằng Key bí mật
+    };
+});
+
+// 4. ĐĂNG KÝ SERVICES DI
+builder.Services.AddAutoMapper(typeof(MappingProfile));
 builder.Services.AddScoped<IAssetRepository, AssetRepository>();
 builder.Services.AddScoped<IPriceHistoryRepository, PriceHistoryRepository>();
-
-// Đăng ký Services (Layer Application)
-// Khi Controller cần IAssetService, hãy đưa cho họ AssetService
 builder.Services.AddScoped<IAssetService, AssetService>();
 
-// Đăng ký HttpClient để gọi API bên ngoài (cho BinanceApiClient sau này)
-builder.Services.AddHttpClient();
+// Đăng ký AuthService (MỚI)
+builder.Services.AddScoped<IAuthService, AuthService>();
 
-// Đăng ký Controllers (để tạo REST API)
+builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 
-// Đăng ký Swagger (tài liệu API tự động) - Rất tiện để test
+// Cấu hình Swagger để hỗ trợ nút "Authorize" (Nhập token)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Đăng ký AutoMapper, nó sẽ tự quét các Profile trong Assembly của bạn
-builder.Services.AddAutoMapper(typeof(Program));
-
-// Đăng ký SignalR Service
-builder.Services.AddSignalR();
-
-// Đăng ký Worker Service (Chạy ngầm)
-builder.Services.AddHostedService<Finance.WebAPI.Workers.PriceUpdateWorker>();
-
-
-
-// Cấu hình CORS (Cross-Origin Resource Sharing)
-// Cho phép Frontend (ở port khác) có thể gọi vào API này
-builder.Services.AddCors(options =>
+builder.Services.AddSwaggerGen(c =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    // Định nghĩa cấu hình bảo mật cho Swagger UI
+    c.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
-        policy.AllowAnyOrigin() // Cho phép mọi nguồn (trong thực tế nên giới hạn)
-              .AllowAnyMethod() // Cho phép mọi method (GET, POST...)
-              .AllowAnyHeader(); // Cho phép mọi header
+        Description = "Nhập token vào ô bên dưới. Ví dụ: Bearer abcxyz123...",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+    // Yêu cầu Swagger sử dụng cấu hình bảo mật trên cho các API
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement()
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                },
+                Scheme = "oauth2",
+                Name = "Bearer",
+                In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+            },
+            new List<string>()
+        }
     });
 });
 
+builder.Services.AddSignalR();
+builder.Services.AddHostedService<Finance.WebAPI.Workers.PriceUpdateWorker>();
+
 var app = builder.Build();
 
-// ==============================================================
-// 2. CẤU HÌNH HTTP REQUEST PIPELINE
-// ==============================================================
+// --- PIPELINE ---
 
-// Nếu đang chạy ở môi trường Development (máy local), bật Swagger lên để test
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-// Bật HTTPS Redirection (chuyển hướng sang giao thức bảo mật)
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 
-// ---------------- THÊM MỚI ----------------
-app.UseDefaultFiles(); // Cho phép chạy file index.html mặc định
-app.UseStaticFiles();  // Cho phép truy cập thư mục wwwroot (css, js)
-// ------------------------------------------
+// --- KÍCH HOẠT AUTHENTICATION (QUAN TRỌNG) ---
+// Phải đặt UseAuthentication TRƯỚC UseAuthorization
+app.UseAuthentication(); // 1. Xác định "Bạn là ai?" (Check token)
+app.UseAuthorization();  // 2. Xác định "Bạn được làm gì?" (Check quyền)
 
-// Kích hoạt CORS đã cấu hình ở trên
-app.UseCors("AllowAll");
-
-// Map các Controllers vào đường dẫn URL
 app.MapControllers();
-
-// Map đường dẫn cho SignalR Hub
-// Client sẽ kết nối vào: http://localhost:xxxx/priceHub
 app.MapHub<Finance.WebAPI.Hubs.PriceHub>("/priceHub");
 
-// Chạy ứng dụng
 app.Run();

@@ -1,5 +1,6 @@
 ﻿using Finance.Application.DTOs; // Import DTO
 using Finance.Application.Services; // Import Service Interface
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc; // Import thư viện tạo API
 
 // Namespace Controllers
@@ -10,6 +11,7 @@ namespace Finance.WebAPI.Controllers
     // "Assets" lấy từ tên class (bỏ chữ Controller). -> URL: /api/assets
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class AssetsController : ControllerBase
     {
         // Khai báo Service để xử lý logic

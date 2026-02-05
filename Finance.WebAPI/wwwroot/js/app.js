@@ -20,20 +20,27 @@ let myChart = null;
 // 2. KHỞI ĐỘNG ỨNG DỤNG
 // ============================================================
 
+// --- SỬA HÀM start() ---
 async function start() {
+    // 1. Kiểm tra xem đã đăng nhập chưa
+    // Nếu chưa (token = null), hàm checkAuth() trong auth.js sẽ tự chuyển hướng về login.html
+    const token = checkAuth();
+    if (!token) return; // Dừng chạy nếu không có token
+
+    // 2. Hiển thị Email người dùng lên thanh menu
+    const userEmail = localStorage.getItem('userEmail');
+    if (document.getElementById('userDisplay')) {
+        document.getElementById('userDisplay').innerText = `Xin chào, ${userEmail}`;
+    }
+
     try {
-        // Bắt đầu kết nối SignalR
         await connection.start();
         console.log("SignalR Connected.");
-
-        // BƯỚC 1: Tải danh sách tất cả coin trên thị trường về để nạp vào dropdown
         await loadMarketData();
-
-        // BƯỚC 2: Tải danh sách coin bạn đang theo dõi để hiện lên bảng
-        await loadAssets();
+        await loadAssets(); // Hàm này cần sửa để gửi Token (xem bên dưới)
     } catch (err) {
         console.error(err);
-        setTimeout(start, 5000); // Thử lại sau 5s nếu lỗi
+        setTimeout(start, 5000);
     }
 }
 
@@ -110,11 +117,31 @@ async function loadMarketData() {
 // ============================================================
 
 // Hàm tải danh sách tài sản của bạn từ Server
+// --- SỬA HÀM loadAssets() ---
+// Thêm Token vào Header khi gọi API lấy danh sách
 async function loadAssets() {
-    const response = await fetch('/api/assets');
+    const token = localStorage.getItem('authToken'); // Lấy token
+
+    const response = await fetch('/api/assets', {
+        method: 'GET',
+        headers: {
+            // Gửi Token lên Server để chứng minh "Tôi đã đăng nhập"
+            'Authorization': `Bearer ${token}`
+        }
+    });
+
+    if (response.status === 401) {
+        // Nếu Server trả về 401 Unauthorized (Token hết hạn hoặc lởm) -> Logout ngay
+        logout();
+        return;
+    }
+
     assets = await response.json();
-    renderTable(); // Vẽ lại bảng
+    renderTable();
 }
+
+// --- LƯU Ý: Sửa tương tự cho các hàm createAsset, deleteAsset, loadChart ---
+// Chỉ cần thêm headers: { 'Authorization': `Bearer ${token}`, ... } vào hàm fetch
 
 // Hàm định dạng tiền tệ
 function formatMoney(amount) {

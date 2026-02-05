@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Finance Pro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        /* CSS riêng cho trang Login để căn giữa màn hình */
+        body {
+            height: 100vh; /* Chiều cao bằng 100% màn hình */
+            display: flex;
+            align-items: center; /* Căn giữa dọc */
+            justify-content: center; /* Căn giữa ngang */
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 400px; /* Độ rộng tối đa của khung login */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="auth-card glass-card p-4">
+        <h3 class="text-center text-warning fw-bold mb-4">FINANCE PRO</h3>
+
+        <div class="mb-3">
+            <label class="text-muted small">Email</label>
+            <input type="email" id="email" class="form-control bg-dark text-light border-secondary" placeholder="name@example.com">
+        </div>
+
+        <div class="mb-4">
+            <label class="text-muted small">Mật khẩu</label>
+            <input type="password" id="password" class="form-control bg-dark text-light border-secondary" placeholder="******">
+        </div>
+
+        <button onclick="login()" class="btn btn-warning w-100 fw-bold py-2 mb-3">ĐĂNG NHẬP</button>
+
+        <div class="text-center">
+            <small class="text-muted">Chưa có tài khoản?</small>
+            <a href="register.html" class="text-warning text-decoration-none fw-bold">Đăng ký ngay</a>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>
