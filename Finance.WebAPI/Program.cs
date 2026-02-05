@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer; // Import cấu hình JWT
 using Microsoft.AspNetCore.Identity; // Import Identity
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens; // Import Token Validation
+using Finance.Domain.Interfaces;
+using Finance.Infrastructure.Repositories;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +17,9 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. KẾT NỐI DATABASE
 builder.Services.AddDbContext<FinanceDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// 2. BỔ SUNG: Đăng ký Repository
+builder.Services.AddScoped<IAssetRepository, AssetRepository>();
 
 // --- 2. CẤU HÌNH IDENTITY (MỚI) ---
 // Thêm Identity vào hệ thống, sử dụng EntityFramework để lưu dữ liệu
