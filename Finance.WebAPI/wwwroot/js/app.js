@@ -117,7 +117,6 @@ async function loadMarketData() {
 // ============================================================
 
 // Hàm tải danh sách tài sản của bạn từ Server
-// --- SỬA HÀM loadAssets() ---
 // Thêm Token vào Header khi gọi API lấy danh sách
 async function loadAssets() {
     const token = localStorage.getItem('authToken'); // Lấy token
@@ -153,57 +152,44 @@ function formatMoney(amount) {
 
 // === HÀM TẠO MỚI (ĐÃ SỬA ĐỂ XỬ LÝ DROPDOWN) ===
 async function createAsset() {
-    // Lấy giá trị từ ô input duy nhất (nơi người dùng chọn hoặc gõ)
     const inputValue = document.getElementById('coinInput').value;
-
-    // Kiểm tra rỗng
     if (!inputValue) return alert("Vui lòng chọn hoặc nhập tên coin!");
 
-    // Biến để chứa kết quả sau khi xử lý
+    // Logic tách chuỗi (Giữ nguyên hoặc copy lại)
     let symbol = "";
     let name = "";
-
-    // Kiểm tra xem người dùng có chọn đúng định dạng "SYMBOL - Name" không
-    // Ví dụ: "BTC - Bitcoin" -> Tách ra mảng ["BTC", "Bitcoin"]
     const parts = inputValue.split(' - ');
-
     if (parts.length >= 2) {
-        // Trường hợp 1: Người dùng chọn từ Dropdown (Đúng chuẩn)
-        symbol = parts[0].trim().toUpperCase(); // Lấy phần trước dấu gạch ngang
-        name = parts[1].trim(); // Lấy phần sau dấu gạch ngang
+        symbol = parts[0].trim().toUpperCase();
+        name = parts[1].trim();
     } else {
-        // Trường hợp 2: Người dùng tự gõ tay (VD: chỉ gõ "DOGE" hoặc "Ethereum")
-        // Ta phải tìm trong danh sách marketCoins xem có khớp không
         const userInput = inputValue.toUpperCase().trim();
-
-        const foundCoin = marketCoins.find(c =>
-            c.symbol.toUpperCase() === userInput ||
-            c.name.toUpperCase() === userInput
-        );
-
+        const foundCoin = marketCoins.find(c => c.symbol.toUpperCase() === userInput || c.name.toUpperCase() === userInput);
         if (foundCoin) {
-            // Nếu tìm thấy trong danh sách
             symbol = foundCoin.symbol;
             name = foundCoin.name;
         } else {
-            // Trường hợp 3: Không tìm thấy gì cả (Coin lạ), lấy luôn cái họ nhập làm Symbol
             symbol = userInput;
             name = inputValue.trim();
         }
     }
 
-    // Gửi dữ liệu đã xử lý lên Server
+    // --- GỌI API ---
+    const token = localStorage.getItem('authToken');
+
     try {
+        // QUAN TRỌNG: Có await ở đây thì phải có async ở đầu hàm
         const response = await fetch('/api/assets', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
             body: JSON.stringify({ symbol, name })
         });
 
         if (response.ok) {
-            // Xóa trắng ô input sau khi thêm
             document.getElementById('coinInput').value = '';
-            // Tải lại bảng để hiện coin mới
             loadAssets();
         } else {
             const errorData = await response.json();
@@ -218,22 +204,29 @@ async function createAsset() {
 async function deleteAsset(id, symbol) {
     if (!confirm(`Bạn có chắc muốn xóa ${symbol} không?`)) return;
 
+    const token = localStorage.getItem('authToken');
+
     try {
-        const response = await fetch(`/api/assets/${id}`, { method: 'DELETE' });
+        // QUAN TRỌNG: Có await ở đây thì phải có async ở đầu hàm
+        const response = await fetch(`/api/assets/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
 
         if (response.ok) {
-            // Xóa khỏi danh sách local
             assets = assets.filter(a => a.id !== id);
             renderTable();
 
-            // Nếu đang xem biểu đồ coin này thì tắt đi
+            // Xóa biểu đồ nếu đang xem coin bị xóa
             if (myChart && myChart.data.datasets[0].label === `Giá ${symbol}`) {
                 myChart.destroy();
                 myChart = null;
                 document.getElementById('chartPlaceholder').style.display = 'block';
             }
         } else {
-            alert("Lỗi khi xóa!");
+            alert("Lỗi khi xóa! Có thể phiên đăng nhập đã hết hạn.");
         }
     } catch (e) {
         console.error(e);
@@ -318,42 +311,66 @@ function renderTable() {
 // 7. XỬ LÝ BIỂU ĐỒ (CHART.JS)
 // ============================================================
 
+// Hàm tải dữ liệu lịch sử và vẽ biểu đồ cho một đồng Coin
+// Hàm tải dữ liệu lịch sử và vẽ biểu đồ cho một đồng Coin
 async function loadChart(assetId, symbol) {
-    const response = await fetch(`/api/assets/${assetId}/history`);
+    // 1. Lấy Token từ LocalStorage (để chứng minh user đã đăng nhập)
+    const token = localStorage.getItem('authToken');
+
+    // 2. Gọi API lấy lịch sử giá (QUAN TRỌNG: Phải kèm Token vào Header)
+    const response = await fetch(`/api/assets/${assetId}/history`, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}` // <--- Thêm dòng này để sửa lỗi 401 Unauthorized
+        }
+    });
+
+    // 3. Kiểm tra bảo mật: Nếu Token hết hạn hoặc không hợp lệ (Lỗi 401)
+    if (response.status === 401) {
+        logout(); // Gọi hàm đăng xuất để đá về trang Login
+        return;   // Dừng hàm lại
+    }
+
+    // 4. Giải mã dữ liệu JSON từ Server trả về
     const historyData = await response.json();
 
+    // 5. Xử lý dữ liệu để vẽ lên biểu đồ
+    // API trả về dữ liệu mới nhất trước (giảm dần) -> Cần đảo ngược (.reverse) để thời gian chạy từ trái qua phải
     const labels = historyData.map(h => new Date(h.timestamp).toLocaleTimeString()).reverse();
     const prices = historyData.map(h => h.price).reverse();
 
+    // 6. Ẩn dòng chữ "Chọn coin để xem..." và chuẩn bị vùng vẽ
     document.getElementById('chartPlaceholder').style.display = 'none';
     const ctx = document.getElementById('priceChart').getContext('2d');
 
+    // 7. Nếu đang có biểu đồ cũ -> Hủy nó đi trước khi vẽ cái mới (tránh bị lỗi đè hình/nhấp nháy)
     if (myChart) myChart.destroy();
 
+    // 8. Khởi tạo biểu đồ mới bằng thư viện Chart.js
     myChart = new Chart(ctx, {
-        type: 'line',
+        type: 'line', // Loại biểu đồ: Đường kẻ (Line Chart)
         data: {
-            labels: labels,
+            labels: labels, // Trục hoành: Thời gian
             datasets: [{
-                label: `Giá ${symbol}`,
-                data: prices,
-                borderColor: '#ffc107',
-                backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 0,
-                fill: true
+                label: `Giá ${symbol}`, // Tên chú thích: VD "Giá BTC"
+                data: prices,           // Trục tung: Giá tiền
+                borderColor: '#ffc107', // Màu đường kẻ: Vàng (theo theme Finance Pro)
+                backgroundColor: 'rgba(255, 193, 7, 0.1)', // Màu nền mờ bên dưới đường kẻ
+                borderWidth: 2,         // Độ dày đường kẻ
+                tension: 0.4,           // Độ cong mềm mại (0 là đường thẳng gấp khúc)
+                pointRadius: 0,         // Ẩn các chấm tròn ở mỗi điểm dữ liệu cho đẹp
+                fill: true              // Tô màu vùng bên dưới đường kẻ
             }]
         },
         options: {
-            responsive: true,
-            interaction: { intersect: false },
-            plugins: { legend: { display: false } },
+            responsive: true, // Tự động co giãn theo màn hình
+            interaction: { intersect: false }, // Di chuột vào vùng nào cũng hiện thông tin
+            plugins: { legend: { display: false } }, // Ẩn chú thích mặc định ở trên cùng
             scales: {
-                x: { display: false },
+                x: { display: false }, // Ẩn trục X (Thời gian) cho giao diện gọn gàng
                 y: {
-                    grid: { color: 'rgba(255,255,255,0.05)' },
-                    ticks: { color: '#888' }
+                    grid: { color: 'rgba(255,255,255,0.05)' }, // Kẻ lưới mờ nhạt
+                    ticks: { color: '#888' } // Màu chữ số bên trục Y
                 }
             }
         }
